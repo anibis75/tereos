@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veille RSS - Tereos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f7f7f7;
+      color: #333;
+    }
+    header {
+      background-color: #00552e;
+      color: white;
+      padding: 1em;
+      text-align: center;
+    }
+    header img {
+      height: 50px;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+    header h1 {
+      display: inline-block;
+      font-size: 1.5em;
+      vertical-align: middle;
+      margin: 0;
+    }
+    nav {
+      background: #e9e9e9;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 0.5em 0;
+    }
+    nav button {
+      background: none;
+      border: none;
+      padding: 0.7em 1.2em;
+      margin: 0.3em;
+      cursor: pointer;
+      font-weight: bold;
+      color: #333;
+      border-bottom: 3px solid transparent;
+    }
+    nav button.active {
+      color: #00552e;
+      border-bottom: 3px solid #00552e;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 2em auto;
+      padding: 0 1em;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 1em;
+      margin-bottom: 1.5em;
+      transition: 0.2s;
+    }
+    .card:hover {
+      transform: scale(1.01);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .card h2 {
+      font-size: 1.2em;
+      margin-top: 0;
+    }
+    .card a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+    .card time {
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/9/98/Logo_Tereos_2016.png" alt="Tereos Logo" />
+    <h1>Veille RSS - Tereos</h1>
+  </header>
+
+  <nav>
+    <button class="active" onclick="loadFeed('ma', this)">M&A</button>
+    <button onclick="loadFeed('macro', this)">Macro Sucre</button>
+    <button onclick="loadFeed('bresil', this)">Brésil</button>
+    <button onclick="loadFeed('france', this)">France</button>
+    <button onclick="loadFeed('afrique', this)">Afrique</button>
+    <button onclick="loadFeed('reunion', this)">Réunion</button>
+    <button onclick="loadFeed('ethanol', this)">Éthanol & Bioénergie</button>
+    <button onclick="loadFeed('climat', this)">Climat</button>
+    <button onclick="loadFeed('reglementaire', this)">Réglementaire</button>
+    <button onclick="loadFeed('watchlist', this)">Watchlist</button>
+  </nav>
+
+  <div class="container" id="rss-feed">
+    <p>Chargement du flux...</p>
+  </div>
+
+  <script>
+    const API_KEY = '219b18769097df63790aa1d0df991162';
+    const BASE_URL = 'https://gnews.io/api/v4/search?lang=fr&country=fr&max=10&token=' + API_KEY;
+
+    const queries = {
+      ma: 'tereos+acquisition+OR+cession+OR+rachat+OR+fusion+OR+joint+venture',
+      macro: 'prix+sucre+OR+quotas+sucre+OR+stock+sucre+OR+production+sucre',
+      bresil: 'tereos+brésil+canne+sucre+OR+production+OR+gel+OR+sécheresse',
+      france: 'tereos+france+betterave+OR+usine+OR+coopérative+sucrière',
+      afrique: 'tereos+mozambique+canne+sucre+production+infrastructure',
+      reunion: 'tereos+réunion+canne+sucre+coopérative+DOM+usine',
+      ethanol: 'tereos+éthanol+biocarburant+mélasse+subvention+bioénergie',
+      climat: 'tereos+climat+sécheresse+gel+impact+agriculture+sucre',
+      reglementaire: 'quotas+sucre+OMC+droits+douane+exportation+interdiction+subvention',
+      watchlist: 'tereos+OR+cristal+union+OR+sudzucker+OR+alvean+OR+copersucar+OR+"saint+louis+sucre"'
+    };
+
+    function loadFeed(key, element) {
+      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+      if (element) element.classList.add('active');
+
+      const query = queries[key];
+      const url = `${BASE_URL}&q=${query}`;
+      const container = document.getElementById('rss-feed');
+
+      container.innerHTML = '<p>Chargement...</p>';
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          container.innerHTML = '';
+          if (!data.articles || data.articles.length === 0) {
+            container.innerHTML = '<p>Aucun article trouvé pour cette catégorie.</p>';
+            return;
+          }
+          data.articles.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+              <h2><a href="${item.url}" target="_blank">${item.title}</a></h2>
+              <time>${new Date(item.publishedAt).toLocaleString()}</time>
+              <p>${item.description || ''}</p>
+            `;
+            container.appendChild(card);
+          });
+        })
+        .catch(err => {
+          container.innerHTML = '<p>Erreur lors du chargement du flux.</p>';
+          console.error(err);
+        });
+    }
+
+    window.onload = () => loadFeed('ma');
+  </script>
+</body>
+</html>
