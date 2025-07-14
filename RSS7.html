@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veille sectorielle Azad - Tereos M&A</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; color: #333; }
+  header { background: #00552e; color: white; text-align: center; padding: 1em; position: relative; }
+  header img { height: 50px; margin-right: 10px; vertical-align: middle; transition: transform 0.5s ease; }
+  header h1 { display: inline-block; margin: 0; font-size: 1.5em; vertical-align: middle; }
+  #config-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 1.5em; color: white; cursor: pointer; }
+  nav { display: flex; flex-wrap: wrap; justify-content: center; background: #e9e9e9; padding: 0.5em; }
+  nav button { border: none; background: none; padding: 0.7em 1em; margin: 0.2em; font-weight: bold; cursor: pointer; border-bottom: 2px solid transparent; }
+  nav button.active { color: #00552e; border-bottom: 2px solid #00552e; }
+  .container { max-width: 1000px; margin: 2em auto; padding: 0 1em; }
+  .card { background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 1em; margin-bottom: 1.5em; }
+  .carousel-container { position: relative; max-width: 600px; margin: 2em auto; overflow: hidden; background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  .carousel-track { display: flex; transition: transform 0.5s ease-in-out; }
+  .carousel-slide { min-width: 100%; box-sizing: border-box; padding: 1em; text-align: center; }
+  .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: #00552e; color: white; border: none; padding: 0.5em; cursor: pointer; }
+  .carousel-btn.prev { left: 0; } .carousel-btn.next { right: 0; }
+  .carousel-slide h2 a, .card h2 a { color: #00552e; text-decoration: none; font-weight: normal; }
+  #configurator-popup { display: none; position: fixed; top: 5%; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #ccc; padding: 1em; z-index: 1000; width: 700px; max-height: 90vh; overflow-y: auto; }
+  .category-block { border: 1px solid #ddd; padding: 0.5em; margin-bottom: 1em; background: #f0f0f0; }
+  .category-title { font-weight: bold; margin-bottom: 0.5em; }
+  .keywords-list { margin-left: 1em; }
+  .remove { background: red; color: white; border: none; cursor: pointer; margin-left: 5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <img id="logo" src="https://upload.wikimedia.org/wikipedia/commons/9/98/Logo_Tereos_2016.png" alt="Tereos Logo">
+  <h1>Veille sectorielle Azad - Tereos M&A</h1>
+  <button id="config-btn" onclick="toggleConfigurator()">⚙️</button>
+</header>
+
+<nav id="category-buttons"></nav>
+
+<div class="carousel-container">
+  <button class="carousel-btn prev" onclick="prevSlide()">&#10094;</button>
+  <div class="carousel-track" id="carousel"><div class="carousel-slide">Chargement...</div></div>
+  <button class="carousel-btn next" onclick="nextSlide()">&#10095;</button>
+</div>
+
+<div class="container" id="rss-feed"><p>Chargement des actualités...</p></div>
+
+<div id="configurator-popup">
+  <h2>Configuration des Catégories & Mots-clés</h2>
+  <div id="configurator"></div>
+  <button onclick="addCategoryBlock()">+ Ajouter Catégorie</button><br><br>
+  <button onclick="applyConfig()">Appliquer</button>
+  <button onclick="toggleConfigurator()">Fermer</button>
+</div>
+
+<script>
+let categoriesData = {
+  "Tereos": ["Tereos"],
+  "Sucre": ["Sucre", "Marché du sucre"],
+  "Éthanol": ["Éthanol"],
+  "Marché Agricole": ["Commodities", "Agricole"],
+  "Prix Matières Premières": ["Prix Matières Premières", "Commodities"],
+  "M&A Sucre": ["Fusion Acquisition Sucre"],
+  "Climat & Agriculture": ["Climat", "Impact Agriculture"],
+  "Brésil Sucre": ["Sucre Brésil"],
+  "Mozambique Sucre": ["Sucre Mozambique"],
+  "Union Européenne Sucre": ["Sucre Union Européenne"]
+};
+
+let allData = [], currentIndex = 0, totalSlides = 0;
+
+function checkPassword() {
+  if (prompt("Mot de passe requis :") !== "tereos2025") {
+    document.body.innerHTML = "<h2>Accès refusé</h2>";
+  } else {
+    loadAllFeeds();
+  }
+}
+
+function toggleConfigurator() {
+  document.getElementById("configurator-popup").style.display = document.getElementById("configurator-popup").style.display === "none" ? "block" : "none";
+  if (document.getElementById("configurator-popup").style.display === "block") renderConfigurator();
+}
+
+function renderConfigurator() {
+  const container = document.getElementById("configurator");
+  container.innerHTML = "";
+  Object.entries(categoriesData).forEach(([cat, kws]) => createCategoryBlock(container, cat, kws));
+}
+
+function createCategoryBlock(container, catName, keywords) {
+  const block = document.createElement("div");
+  block.className = "category-block";
+  block.innerHTML = `<div class='category-title'><input type='text' value='${catName}' class='category-name'> <button class='remove' onclick='this.parentElement.parentElement.remove()'>Supprimer Catégorie</button></div>`;
+  const kwList = document.createElement("div");
+  kwList.className = "keywords-list";
+  keywords.forEach(kw => addKeywordField(kwList, kw));
+  block.appendChild(kwList);
+  const addKwBtn = document.createElement("button");
+  addKwBtn.textContent = "+ Ajouter mot-clé";
+  addKwBtn.onclick = () => addKeywordField(kwList, "");
+  block.appendChild(addKwBtn);
+  container.appendChild(block);
+}
+
+function addCategoryBlock() {
+  createCategoryBlock(document.getElementById("configurator"), "Nouvelle Catégorie", []);
+}
+
+function addKeywordField(container, value) {
+  const div = document.createElement("div");
+  div.innerHTML = `<input type='text' value='${value}' class='keyword'> <button class='remove' onclick='this.parentElement.remove()'>X</button>`;
+  container.appendChild(div);
+}
+
+function applyConfig() {
+  categoriesData = {};
+  document.querySelectorAll(".category-block").forEach(block => {
+    const name = block.querySelector(".category-name").value.trim();
+    const kws = Array.from(block.querySelectorAll(".keyword")).map(input => input.value.trim()).filter(v => v);
+    if (name && kws.length) categoriesData[name] = kws;
+  });
+  animateLogo();
+  loadAllFeeds();
+  toggleConfigurator();
+}
+
+function animateLogo() {
+  const logo = document.getElementById("logo");
+  logo.style.transform = "rotate(360deg) scale(1.2)";
+  setTimeout(() => logo.style.transform = "rotate(0deg) scale(1)", 500);
+}
+
+function getRSSUrls() {
+  const urls = {};
+  Object.entries(categoriesData).forEach(([cat, kws]) => {
+    if (kws.length > 0) urls[cat] = `https://news.google.com/rss/search?q=${encodeURIComponent(kws.map(kw => `"${kw}"`).join(" OR "))}&hl=fr&gl=FR&ceid=FR:fr`;
+  });
+  return urls;
+}
+
+async function fetchRSS(url, category) {
+  const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+  const data = await res.json();
+  if (!data.items) throw new Error("Pas d'articles");
+  return data.items.map(item => ({ title: item.title, link: item.link, pubDate: item.pubDate, category }));
+}
+
+function renderCategories() {
+  const nav = document.getElementById("category-buttons");
+  nav.innerHTML = "";
+  Object.keys(categoriesData).forEach(cat => {
+    const btn = document.createElement("button");
+    btn.textContent = cat;
+    btn.onclick = () => { document.querySelectorAll("nav button").forEach(b => b.classList.remove("active")); btn.classList.add("active"); renderFeed(cat); };
+    nav.appendChild(btn);
+  });
+}
+
+function renderFeed(category) {
+  const container = document.getElementById("rss-feed");
+  const filtered = allData.filter(item => item.category === category).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  container.innerHTML = filtered.length ? filtered.map(item => `<div class='card'><h2><a href='${item.link}' target='_blank'>${item.title}</a></h2><time>${new Date(item.pubDate).toLocaleString()}</time><p>${item.category}</p></div>`).join("") : "<p>Aucun article trouvé.</p>";
+}
+
+function renderCarousel() {
+  const carousel = document.getElementById("carousel");
+  const latest = [...allData].sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)).slice(0, 10);
+  carousel.innerHTML = latest.length ? latest.map(item => `<div class='carousel-slide'><h2><a href='${item.link}' target='_blank'>${item.title}</a></h2><time>${new Date(item.pubDate).toLocaleString()}</time><p>${item.category}</p></div>`).join("") : "<div class='carousel-slide'>Aucune actualité récente.</div>";
+  totalSlides = latest.length || 1;
+  currentIndex = 0;
+  updateCarousel();
+}
+
+function updateCarousel() { document.getElementById("carousel").style.transform = `translateX(-${currentIndex * 100}%)`; }
+function nextSlide() { if (totalSlides) { currentIndex = (currentIndex + 1) % totalSlides; updateCarousel(); } }
+function prevSlide() { if (totalSlides) { currentIndex = (currentIndex - 1 + totalSlides) % totalSlides; updateCarousel(); } }
+
+async function loadAllFeeds() {
+  try {
+    allData = [];
+    const urls = getRSSUrls();
+    for (const [cat, url] of Object.entries(urls)) {
+      const articles = await fetchRSS(url, cat);
+      allData.push(...articles);
+    }
+    renderCategories();
+    renderCarousel();
+    document.querySelectorAll("nav button")[0]?.click();
+  } catch (e) {
+    document.getElementById("rss-feed").innerHTML = "<p>Erreur lors du chargement des flux.</p>";
+    document.getElementById("carousel").innerHTML = "<div class='carousel-slide'>Erreur lors du chargement des dernières news.</div>";
+  }
+}
+
+window.onload = checkPassword;
+</script>
+
+</body>
+</html>
