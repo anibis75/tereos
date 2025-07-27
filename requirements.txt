@@ -1,0 +1,5 @@
+duckdb==1.3.1          # accès MotherDuck
+streamlit==1.33.0      # UI
+pandas==2.2.2          # data‑frame
+XlsxWriter==3.2.0      # export XLSX
+python-dotenv==1.0.1   # variables d’environnement (optionnel)
